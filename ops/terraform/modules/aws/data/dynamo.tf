@@ -1,4 +1,4 @@
-resource "aws_dynamodb_table" "outbox" {
+resource "aws_dynamodb_table" "this" {
   name         = "outbox"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "AggregateID"
@@ -36,5 +36,35 @@ resource "aws_dynamodb_table" "outbox" {
 
   tags = merge(var.common_tags, {
     Name = format("outbox-%s-dynamodb-table", var.common_tags.service_name)
+  })
+}
+
+resource "aws_iam_policy" "this" {
+  name        = "outbox-access"
+  description = "Policy for accessing outbox DynamoDB table"
+
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ],
+        "Resource" : [
+          "${aws_dynamodb_table.this.arn}",
+          "${aws_dynamodb_table.this.arn}/index/*"
+        ]
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = format("%s-%s-dynamodb-access-policy", aws_dynamodb_table.this.name, var.common_tags.service_name)
   })
 }
